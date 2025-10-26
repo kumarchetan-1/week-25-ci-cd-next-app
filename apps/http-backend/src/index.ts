@@ -9,12 +9,22 @@ app.get("/", (req, res)=>{
 })
 
 
-app.get("/signup", (req, res)=>{
+app.post("/signup", async(req, res)=>{
     const username = req.body.username;
     const password = req.body.password;
 
-    client.user.create
+    const user =  await client.user.create({
+        data:{
+            username, 
+            password
+        }
+    })
+
+    res.json({
+        message: "Signup successfull",
+        id: user.id
+    })
 
 })
 
-app.listen(3000)
+app.listen(3001)
