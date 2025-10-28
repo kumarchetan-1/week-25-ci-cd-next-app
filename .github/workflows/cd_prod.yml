@@ -8,9 +8,9 @@ on:
 
 jobs:
   redeploy-everything:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest 
     steps: 
-    - run: |
+    - run: | 
         echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/ssh_key
         chmod 600 ~/ssh_key
         mkdir -p ~/.ssh
