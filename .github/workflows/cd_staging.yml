@@ -16,12 +16,9 @@ jobs:
         mkdir -p ~/.ssh
         ssh-keyscan -H 56.228.41.167 >> ~/.ssh/known_hosts
         ssh -i ~/ssh_key ubuntu@56.228.41.167 -t "
-          source ~/.bashrc;
-          export NVM_DIR=\"$HOME/.nvm\";
-          [ -s \"$NVM_DIR/nvm.sh\" ] && \\ . \"$NVM_DIR/nvm.sh\";
           cd week-25-ci-cd-next-app/;
           git pull origin main;
-          npm install -g pnpm;
+          npm install -g pnpm pm2;
           pnpm install;
           pnpm run build;
           pm2 restart fe-server;
