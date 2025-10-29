@@ -20,10 +20,14 @@ jobs:
       - name: Install pnpm
         run: npm install -g pnpm
 
-      - name: Install & Build
-        run: |
-          pnpm install
-          pnpm run build
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate --schema=packages/db/prisma/schema.prisma
+
+      - name: Build apps
+        run: pnpm run build
 
       - name: Upload build to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -31,8 +35,8 @@ jobs:
           host: 13.51.200.131
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          source: ".next/*"
-          target: "~/week-25-ci-cd-next-app/.next"
+          source: "apps/web/.next/*"
+          target: "~/week-25-ci-cd-next-app/apps/web/.next"
 
       - name: Restart app on EC2
         uses: appleboy/ssh-action@v1.0.3
