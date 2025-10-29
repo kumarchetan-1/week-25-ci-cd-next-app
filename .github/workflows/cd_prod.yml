@@ -8,25 +8,23 @@ on:
 
 jobs:
   redeploy-everything:
-    runs-on: ubuntu-latest 
-    steps: 
-    - run: | 
-        echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/ssh_key
-        chmod 600 ~/ssh_key
-        mkdir -p ~/.ssh
-        ssh-keyscan -H 13.51.200.131 >> ~/.ssh/known_hosts
-        ssh -i ~/ssh_key ubuntu@13.51.200.131 -t "
-          export NVM_DIR=\"$HOME/.nvm\";
-          [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\";
-          [ -s \"$NVM_DIR/bash_completion\" ] && . \"$NVM_DIR/bash_completion\";
-          nvm use node;
-          export PATH=\$PATH:/home/ubuntu/.nvm/versions/node/v22.21.0/bin;
-          cd week-25-ci-cd-next-app/;
-          git pull origin production;
-          npm install -g pnpm pm2;
-          pnpm install;
-          pnpm run build;
-          pm2 restart fe-server;
-          pm2 restart http-server;
-          pm2 restart ws-server;
-        "
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 13.51.200.131
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            cd week-25-ci-cd-next-app/
+            git pull origin production
+            npm install -g pnpm pm2
+            pnpm install
+            pnpm run build
+            pm2 restart fe-server
+            pm2 restart http-server
+            pm2 restart ws-server
