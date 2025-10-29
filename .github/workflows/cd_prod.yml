@@ -1,49 +1,32 @@
-name: Deploy to Production
+name: Deployment to staging
 
 on:
   push:
-    branches: [production]
+    branches: [ production ]
+  pull_request:
+    branches: [ production ]
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install pnpm
-        run: npm install -g pnpm
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Generate Prisma Client
-        run: pnpm --filter @repo/db exec npx prisma generate --schema=packages/prisma/schema.prisma
-
-      - name: Build apps
-        run: pnpm run build
-
-      - name: Upload build to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: 13.51.200.131
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          source: "apps/web/.next/*"
-          target: "~/week-25-ci-cd-next-app/apps/web/.next"
-
-      - name: Restart app on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: 13.51.200.131
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          script: |
-            cd week-25-ci-cd-next-app
-            pm2 restart all || pm2 start "pnpm start"
+  redeploy-everything:
+    runs-on: ubuntu-latest 
+    steps: 
+    - run: | 
+        echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/ssh_key
+        chmod 600 ~/ssh_key
+        mkdir -p ~/.ssh
+        ssh-keyscan -H 13.51.200.131 >> ~/.ssh/known_hosts
+        ssh -i ~/ssh_key ubuntu@13.51.200.131 -t "
+          export NVM_DIR=\"$HOME/.nvm\";
+          [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\";
+          [ -s \"$NVM_DIR/bash_completion\" ] && . \"$NVM_DIR/bash_completion\";
+          nvm use node;
+          export PATH=\$PATH:/home/ubuntu/.nvm/versions/node/v22.21.0/bin;
+          cd week-25-ci-cd-next-app/;
+          git pull origin production;
+          npm install -g pnpm pm2;
+          pnpm install;
+          pnpm run build;
+          pm2 restart fe-server;
+          pm2 restart http-server;
+          pm2 restart ws-server;
+        "
