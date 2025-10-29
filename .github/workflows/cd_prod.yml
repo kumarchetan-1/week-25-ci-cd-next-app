@@ -1,30 +1,44 @@
-name: Deployment to staging
+name: Deploy to Production
 
 on:
   push:
-    branches: [ production ]
-  pull_request:
-    branches: [ production ]
+    branches: [production]
 
 jobs:
-  redeploy-everything:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to EC2 via SSH
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install & Build
+        run: |
+          npm install -g pnpm
+          pnpm install
+          pnpm run build
+
+      - name: Upload build to EC2 and restart
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 13.51.200.131
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          source: "dist/*"
+          target: "~/week-25-ci-cd-next-app/dist"
+
+      - name: Restart app on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 13.51.200.131
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
-            cd week-25-ci-cd-next-app/
-            git pull origin production
-            npm install -g pnpm pm2
-            pnpm install
-            pnpm run build
-            pm2 restart fe-server
-            pm2 restart http-server
-            pm2 restart ws-server
+            cd week-25-ci-cd-next-app
+            pm2 restart all || pm2 start pnpm --name fe-server -- start
